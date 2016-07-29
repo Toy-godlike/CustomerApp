@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">CustomerApp</string>
+    <string name="getPro">商品信息</string>
+    <string name="saveSold">商品出售</string>
+    <string name="getDis">打折信息</string>
+</resources>
