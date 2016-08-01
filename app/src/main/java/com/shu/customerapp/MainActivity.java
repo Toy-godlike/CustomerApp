@@ -6,6 +6,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 
+import com.shu.entity.Products;
 import com.shu.entity.Sold;
 
 import org.apache.http.HttpEntity;
@@ -61,7 +62,6 @@ public class MainActivity extends AppCompatActivity {
         public void onClick(View v) {
             switch (v.getId()){
                 case R.id.btn1: {
-                    System.out.println("1111111111111111111111111111111");
                     new Thread(new Runnable() {
                         @Override
                         public void run() {
@@ -70,8 +70,16 @@ public class MainActivity extends AppCompatActivity {
                     }).start();
                     break;
                 }
+                case R.id.btn2:{
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            getDis();
+                        }
+                    }).start();
+                    break;
+                }
                 case R.id.btn3: {
-                    System.out.println("33333333333333333333");
                     new Thread(new Runnable() {
                         @Override
                         public void run() {
@@ -100,7 +108,8 @@ public class MainActivity extends AppCompatActivity {
             if(hr.getStatusLine().getStatusCode() == HttpStatus.SC_OK){
                 HttpEntity httpEntity = hr.getEntity();
                 // 获得JSON字符串
-                // 内容为{"area":{"a_num":2,"a_name":"动物","location":"2楼动物园"},"product":{"shapcode":"123","pname":"鳄鱼","price":9.0,"picture":null}}
+                // 内容为{"area":{"a_num":2,"a_name":"动物","location":"2楼动物园"},
+                // "product":{"shapcode":"123","pname":"鳄鱼","price":9.0,"picture":null}}
                 String jsonstring = EntityUtils.toString(httpEntity);
                 //将JSON字符串变为JSON对象
                 JSONObject jsonObject = new JSONObject(jsonstring);
@@ -127,6 +136,48 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    //获取打折信息，包括商品信息和对应商品的打折信息
+    public void getDis(){
+        HttpClient httpClient = new DefaultHttpClient();
+        HttpGet hg = new HttpGet("http://139.129.28.167/ProductService/customer/getDis");
+        try {
+            HttpResponse hr = httpClient.execute(hg);
+            if(hr.getStatusLine().getStatusCode() == HttpStatus.SC_OK){
+                HttpEntity httpEntity = hr.getEntity();
+                // 获得JSON字符串
+                // 内容为{"discountInfo":[{"shapcode":"3333","pname":"苹果","price":6.0,"picture":null},
+                // {"d_num":6,"shapcode":"3333","disc":0.9,"beginDate":1469519065000,"endDate":1471938269000},
+                // {"shapcode":"123","pname":"鳄鱼","price":9.0,"picture":null},
+                // {"d_num":7,"shapcode":"123","disc":0.75,"beginDate":1469783959000,"endDate":1471511962000}]}
+                String jsonstring = EntityUtils.toString(httpEntity);
+                //将JSON字符串变为JSON对象
+                JSONObject jsonObject = new JSONObject(jsonstring);
+                //获得discountInfo部分内容
+                //内容为json数组，单数为商品，双数为对应的打折信息
+                JSONArray jsonArray = jsonObject.getJSONArray("discountInfo");
+                //将json数组转化为product和discount对象
+                for (int i = 0;i < jsonArray.length();i = i + 2){
+                    JSONObject object1 = jsonArray.getJSONObject(i);
+                    String shapcode = object1.getString("shapcode");
+                    JSONObject object2 = jsonArray.getJSONObject(i + 1);
+                    int dnum = object2.getInt("d_num");
+                    System.out.println(shapcode + "----------------" + dnum);
+                }
+            }else {
+                System.out.println(hr.getStatusLine() + "----------failed---------------");
+            }
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        } catch (ClientProtocolException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
+    //这里sold信息写死，使用时可以通过参数传入
     public void save() throws JSONException{
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         Sold sold = new Sold();
@@ -136,6 +187,7 @@ public class MainActivity extends AppCompatActivity {
         sold.setS_date(new Date());
         sold.setO_price(9);
         sold.setS_price(9 * 0.75);
+        //将一组sold对象转化为json字符串
         List<Sold> solds = new ArrayList<>();
         solds.add(sold);
         JSONArray jsonArray = new JSONArray();
@@ -151,6 +203,7 @@ public class MainActivity extends AppCompatActivity {
             jsonArray.put(temp);
         }
         String soldinfo = jsonArray.toString();
+        //发送POST方式HTTP请求
         HttpClient httpClient = new DefaultHttpClient();
         HttpPost hp = new HttpPost("http://139.129.28.167/ProductService/customer/save");
         System.out.println("-------:" + soldinfo);
